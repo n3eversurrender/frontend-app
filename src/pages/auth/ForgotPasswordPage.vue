@@ -239,10 +239,10 @@ const submitResetPassword = async (): Promise<void> => {
   align-items: flex-start;
   background-color: #ffffff;
   padding: 24px;
+  padding-top: 60px;
   max-width: 400px;
   margin: 0 auto;
   min-height: 100vh;
-  justify-content: center;
 }
 
 .header-text {
