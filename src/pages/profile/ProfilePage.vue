@@ -67,7 +67,7 @@
         </q-item-section>
         <q-item-section>
           <q-item-label class="text-body1">Update Application</q-item-label>
-          <q-item-label caption class="text-grey-6">last checked 21 Nov 2025 15:47</q-item-label>
+          <q-item-label caption class="text-grey-6">last checked {{ lastChecked }}</q-item-label>
         </q-item-section>
         <q-item-section side>
           <q-icon name="chevron_right" size="24px" color="grey-6" />
@@ -108,6 +108,7 @@ const profileImageUrl = ref(user.value?.url ?? 'https://i.pravatar.cc/300');
 
 // File upload references
 const fileInputRef = ref<HTMLInputElement | null>(null);
+const lastChecked = ref(localStorage.getItem('app_last_checked') || '21 Nov 2025 15:47');
 
 // Fetch the latest profile data from backend
 const fetchProfile = async () => {
@@ -199,8 +200,83 @@ function goToChangePassword() {
   void router.push('/change-password');
 }
 
-function goToAppUpdate() {
-  console.log('Navigate to App Update');
+async function goToAppUpdate() {
+  $q.loading.show({ message: 'Checking for updates...' });
+
+  const now = new Date();
+  const options: Intl.DateTimeFormatOptions = {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  };
+  const formattedDate = now.toLocaleDateString('en-GB', options).replace(',', '');
+
+  try {
+    if ('serviceWorker' in navigator) {
+      const registration = await navigator.serviceWorker.getRegistration();
+      if (registration) {
+        await registration.update();
+        if (registration.waiting || registration.installing) {
+          $q.loading.hide();
+          $q.dialog({
+            title: 'Update Available',
+            message: 'A new version of the application is available. Would you like to update now?',
+            ok: {
+              label: 'Update',
+              color: 'primary',
+              unelevated: true,
+            },
+            cancel: {
+              label: 'Later',
+              flat: true,
+              color: 'grey-7',
+            },
+            persistent: true,
+          }).onOk(() => {
+            if (registration.waiting) {
+              registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+            }
+            window.location.reload();
+          });
+        } else {
+          $q.loading.hide();
+          $q.notify({
+            type: 'info',
+            message: 'Application is up-to-date!',
+            position: 'top',
+          });
+        }
+      } else {
+        $q.loading.hide();
+        $q.notify({
+          type: 'info',
+          message: 'Application is up-to-date!',
+          position: 'top',
+        });
+      }
+    } else {
+      $q.loading.hide();
+      $q.notify({
+        type: 'negative',
+        message: 'Service worker is not supported in this browser.',
+        position: 'top',
+      });
+    }
+
+    localStorage.setItem('app_last_checked', formattedDate);
+    lastChecked.value = formattedDate;
+  } catch (error) {
+    console.error('Error checking for updates:', error);
+    $q.loading.hide();
+    $q.notify({
+      type: 'negative',
+      message: 'Failed to check for updates.',
+      position: 'top',
+    });
+  }
 }
 
 function handleLogout() {
