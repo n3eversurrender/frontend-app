@@ -2,7 +2,7 @@
   "name": "frontend-app",
   "version": "0.0.1",
   "description": "A Quasar Project",
-  "productName": "Quasar App",
+  "productName": "Smart Energy Monitoring",
   "author": "Zaini <zainiridha8@Gmail.com>",
   "type": "module",
   "private": true,
