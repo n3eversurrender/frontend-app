@@ -34,10 +34,10 @@ export default defineRouter(function (/* { store, ssrContext } */) {
   });
 
   Router.beforeEach((to, _from, next) => {
-    // Check if route requires authentication
+    const token = localStorage.getItem('access_token');
+
+    // 1. If route requires authentication
     if (to.matched.some((record) => record.meta.requiresAuth)) {
-      // Check if user has token (stored as 'access_token' in LoginPage)
-      const token = localStorage.getItem('access_token');
       if (!token) {
         // Redirect to auth landing page if not authenticated
         next({ path: '/auth' });
@@ -63,7 +63,20 @@ export default defineRouter(function (/* { store, ssrContext } */) {
         }
         next();
       }
-    } else {
+    }
+    // 2. If user is already logged in and tries to access login/register/auth pages
+    else if (to.path.startsWith('/auth') && token) {
+      next({ path: '/home' });
+    }
+    // 3. Root path redirect logic
+    else if (to.path === '/') {
+      if (token) {
+        next({ path: '/home' });
+      } else {
+        next({ path: '/auth' });
+      }
+    }
+    else {
       // Allow access to public routes
       next();
     }

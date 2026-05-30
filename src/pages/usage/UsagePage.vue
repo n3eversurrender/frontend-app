@@ -1004,9 +1004,11 @@ async function downloadPdf() {
     });
   } catch (err) {
     console.error('PDF export failed', err);
+    const axiosError = err as { response?: { data?: { message?: string } }; message?: string };
+    const errMsg = axiosError.response?.data?.message || axiosError.message || 'Please try again.';
     $q.notify({
       type: 'negative',
-      message: 'Failed to generate report. Please try again.',
+      message: `Failed to generate report: ${errMsg}`,
       icon: 'error',
     });
   } finally {
