@@ -4,7 +4,55 @@
  * quasar.config file > pwa > workboxMode is set to "InjectManifest"
  */
 
-declare const self: any;
+interface CustomPushMessageData {
+  json(): unknown;
+  text(): string;
+}
+
+interface CustomPushEvent extends Event {
+  readonly data: CustomPushMessageData | null;
+  waitUntil(f: Promise<unknown>): void;
+}
+
+interface CustomNotification {
+  close(): void;
+  readonly data: unknown;
+}
+
+interface CustomNotificationEvent extends Event {
+  readonly notification: CustomNotification;
+  waitUntil(f: Promise<unknown>): void;
+}
+
+interface CustomClient {
+  focus(): Promise<CustomClient>;
+}
+
+interface CustomClients {
+  matchAll(options?: { type?: string; includeUncontrolled?: boolean }): Promise<CustomClient[]>;
+  openWindow(url: string): Promise<CustomClient | null>;
+}
+
+interface CustomServiceWorkerRegistration {
+  showNotification(title: string, options?: unknown): Promise<void>;
+}
+
+interface CustomPrecacheEntry {
+  url: string;
+  revision?: string | null;
+}
+
+interface CustomServiceWorkerGlobalScope {
+  readonly clients: CustomClients;
+  readonly registration: CustomServiceWorkerRegistration;
+  skipWaiting(): void;
+  __WB_MANIFEST: (string | CustomPrecacheEntry)[];
+  addEventListener(type: 'push', listener: (event: CustomPushEvent) => void): void;
+  addEventListener(type: 'notificationclick', listener: (event: CustomNotificationEvent) => void): void;
+  addEventListener(type: string, listener: (event: Event) => void): void;
+}
+
+declare const self: CustomServiceWorkerGlobalScope;
 
 import { clientsClaim } from 'workbox-core';
 import {
@@ -38,13 +86,20 @@ if (process.env.MODE !== 'ssr' || process.env.PROD) {
 /**
  * Handle incoming push notifications
  */
-self.addEventListener('push', (event: any) => {
+self.addEventListener('push', (event) => {
   if (!event.data) return;
 
   try {
-    const data = event.data.json();
+    const data = event.data.json() as {
+      title?: string;
+      body?: string;
+      data?: {
+        action?: string;
+        [key: string]: unknown;
+      };
+    };
     const title = data.title || 'Smart Energy Monitoring';
-    const options: any = {
+    const options = {
       body: data.body || '',
       icon: '/icons/icon-192x192.png',
       badge: '/icons/icon-128x128.png',
@@ -55,7 +110,7 @@ self.addEventListener('push', (event: any) => {
     };
 
     event.waitUntil(self.registration.showNotification(title, options));
-  } catch (error) {
+  } catch {
     // Fallback jika data bukan JSON
     const text = event.data.text();
     event.waitUntil(
@@ -71,13 +126,13 @@ self.addEventListener('push', (event: any) => {
 /**
  * Handle notification click — buka/fokus app saat user tap notifikasi
  */
-self.addEventListener('notificationclick', (event: any) => {
+self.addEventListener('notificationclick', (event) => {
   event.notification.close();
 
   event.waitUntil(
     self.clients
       .matchAll({ type: 'window', includeUncontrolled: true })
-      .then((clientList: any[]) => {
+      .then((clientList) => {
         // Jika app sudah terbuka, fokus ke tab tersebut
         for (const client of clientList) {
           if ('focus' in client) {
