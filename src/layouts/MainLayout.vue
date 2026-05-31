@@ -17,6 +17,8 @@
 import { useQuasar } from 'quasar';
 import BottomNav from 'src/components/BottomNav/BottomNav.vue';
 import SideNav from 'src/components/SideNav/SideNav.vue';
+import { useAuth } from 'src/composables/useAuth';
+import { usePushNotification } from 'src/composables/usePushNotification';
 import { computed, onMounted, ref } from 'vue';
 
 const $q = useQuasar();
@@ -91,6 +93,60 @@ onMounted(() => {
     console.log('PWA: App installed');
     deferredPrompt.value = null;
   });
+
+  // Push Notification Prompt Logic
+  const { isAuthenticated } = useAuth();
+  const { checkSupport, checkSubscription, subscribeToPush } = usePushNotification();
+
+  if (isAuthenticated() && checkSupport()) {
+    void checkSubscription().then((isSubscribed) => {
+      // Tampilkan prompt jika belum subscribe dan belum pernah menolak (denied)
+      if (!isSubscribed && Notification.permission !== 'denied') {
+        setTimeout(() => {
+          $q.notify({
+            message: 'Dapatkan Notifikasi Pintar!',
+            caption: 'Aktifkan push notification untuk menerima peringatan pemakaian energi langsung di perangkat Anda.',
+            color: 'primary',
+            icon: 'notifications_active',
+            position: 'top',
+            timeout: 0,
+            actions: [
+              {
+                label: 'Aktifkan',
+                color: 'white',
+                handler: () => {
+                  void subscribeToPush().then((success) => {
+                    if (success) {
+                      $q.notify({
+                        type: 'positive',
+                        message: 'Notifikasi berhasil diaktifkan!',
+                        position: 'top',
+                        timeout: 2000,
+                      });
+                    } else {
+                      $q.notify({
+                        type: 'negative',
+                        message: 'Gagal mengaktifkan notifikasi.',
+                        position: 'top',
+                        timeout: 2000,
+                      });
+                    }
+                  });
+                },
+              },
+              {
+                label: 'Nanti',
+                color: 'blue-2',
+                handler: () => {
+                  /* dismiss */
+                },
+              },
+            ],
+          });
+        }, 2000);
+      }
+    });
+  }
 });
 </script>
 
