@@ -10,8 +10,10 @@ const pushLoading = ref(false);
  * Diperlukan oleh PushManager.subscribe()
  */
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
-  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  // Bersihkan tanda kutip (", ') dan spasi di awal/akhir string jika terikut saat copy-paste
+  const cleanString = base64String.trim().replace(/^['"]|['"]$/g, '');
+  const padding = '='.repeat((4 - (cleanString.length % 4)) % 4);
+  const base64 = (cleanString + padding).replace(/-/g, '+').replace(/_/g, '/');
   const rawData = window.atob(base64);
   const outputArray = new Uint8Array(rawData.length);
   for (let i = 0; i < rawData.length; ++i) {
