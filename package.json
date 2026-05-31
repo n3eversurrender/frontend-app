@@ -1,8 +1,8 @@
 {
   "name": "frontend-app",
   "version": "0.0.1",
-  "description": "A Quasar Project",
-  "productName": "Smart Energy Monitoring",
+  "description": "Voltaris - Sistem Pemantauan & Optimasi Energi Cerdas. Catat dan pantau penggunaan daya listrik rumah tangga secara praktis untuk menghemat tagihan listrik hingga 30%.",
+  "productName": "Voltaris - Smart Energy Monitoring",
   "author": "Zaini <zainiridha8@Gmail.com>",
   "type": "module",
   "private": true,

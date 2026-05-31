@@ -73,7 +73,7 @@ export default defineRouter(function (/* { store, ssrContext } */) {
       if (token) {
         next({ path: '/home' });
       } else {
-        next({ path: '/auth' });
+        next(); // Allow guests to view the landing page
       }
     }
     else {
