@@ -115,8 +115,8 @@ onMounted(() => {
                 label: 'Aktifkan',
                 color: 'white',
                 handler: () => {
-                  void subscribeToPush().then((success) => {
-                    if (success) {
+                  void subscribeToPush().then((result) => {
+                    if (result.success) {
                       $q.notify({
                         type: 'positive',
                         message: 'Notifikasi berhasil diaktifkan!',
@@ -126,9 +126,10 @@ onMounted(() => {
                     } else {
                       $q.notify({
                         type: 'negative',
-                        message: 'Gagal mengaktifkan notifikasi.',
+                        message: `Gagal mengaktifkan notifikasi: ${result.error || ''}`,
                         position: 'top',
-                        timeout: 2000,
+                        timeout: 6000,
+                        actions: [{ label: 'Dismiss', color: 'white' }]
                       });
                     }
                   });

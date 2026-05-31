@@ -56,10 +56,9 @@ export function usePushNotification() {
    * 2. Subscribe ke PushManager dengan VAPID public key
    * 3. Kirim subscription ke backend
    */
-  async function subscribeToPush(): Promise<boolean> {
+  async function subscribeToPush(): Promise<{ success: boolean; error?: string }> {
     if (!checkSupport()) {
-      console.warn('Push notifications are not supported in this browser');
-      return false;
+      return { success: false, error: 'Push notifications are not supported in this browser' };
     }
 
     pushLoading.value = true;
@@ -68,8 +67,7 @@ export function usePushNotification() {
       // 1. Minta izin notifikasi
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') {
-        console.warn('Notification permission denied');
-        return false;
+        return { success: false, error: `Notification permission denied (status: ${permission})` };
       }
 
       // 2. Dapatkan service worker registration
@@ -82,14 +80,13 @@ export function usePushNotification() {
         // Sudah subscribe, kirim ulang ke backend untuk memastikan tersimpan
         await sendSubscriptionToServer(existingSubscription);
         isPushSubscribed.value = true;
-        return true;
+        return { success: true };
       }
 
       // 4. Subscribe baru dengan VAPID public key
       const vapidPublicKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
       if (!vapidPublicKey) {
-        console.error('VAPID public key not found in environment variables');
-        return false;
+        return { success: false, error: 'VAPID public key not found in env' };
       }
 
       const subscription = await registration.pushManager.subscribe({
@@ -100,10 +97,11 @@ export function usePushNotification() {
       // 5. Kirim subscription ke backend
       await sendSubscriptionToServer(subscription);
       isPushSubscribed.value = true;
-      return true;
+      return { success: true };
     } catch (error) {
       console.error('Failed to subscribe to push notifications:', error);
-      return false;
+      const errMsg = error instanceof Error ? error.message : String(error);
+      return { success: false, error: errMsg };
     } finally {
       pushLoading.value = false;
     }
