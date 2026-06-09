@@ -8,6 +8,107 @@
       </div>
     </div>
 
+    <template v-else-if="isUserAdmin">
+      <!-- ===== ADMIN HEADER ===== -->
+      <div class="header-box q-px-md q-pt-md q-pb-lg">
+        <div class="row items-center justify-between text-white q-mb-md">
+          <div class="text-h6 text-weight-bold">Admin Dashboard</div>
+          <q-btn flat round dense icon="notifications" size="sm" color="white" to="/notifications">
+            <q-badge v-if="unreadCount > 0" color="red" floating rounded />
+          </q-btn>
+        </div>
+
+        <!-- Admin Greeting Card -->
+        <q-card flat bordered class="dss-score-card q-mb-sm">
+          <q-card-section class="q-pa-md row items-center no-wrap">
+            <div class="q-mr-md">
+              <q-avatar size="50px" color="primary" text-color="white" icon="admin_panel_settings" />
+            </div>
+            <div>
+              <div class="text-subtitle1 text-weight-bold text-grey-9">Welcome Back, Admin!</div>
+              <div class="text-caption text-grey-6" style="font-size: 11px; line-height: 1.3;">You are in System Overview Mode. Monitor and manage application core data.</div>
+            </div>
+          </q-card-section>
+        </q-card>
+      </div>
+
+      <!-- ===== ADMIN SYSTEM STATS ===== -->
+      <div class="q-mt-md">
+        <div class="text-subtitle2 text-weight-bold q-mb-sm">System Overview</div>
+        <div class="row q-col-gutter-md">
+          <!-- Total Users -->
+          <div class="col-6">
+            <q-card flat bordered class="power-monitor-card text-center q-pa-md">
+              <q-icon name="people" size="32px" color="primary" />
+              <div class="text-h5 text-weight-bolder text-grey-9 q-mt-xs">{{ adminStats.users }}</div>
+              <div class="text-caption text-grey-6 text-weight-medium" style="font-size: 11px;">Registered Users</div>
+            </q-card>
+          </div>
+
+          <!-- Total Households -->
+          <div class="col-6">
+            <q-card flat bordered class="power-monitor-card text-center q-pa-md">
+              <q-icon name="home" size="32px" color="green" />
+              <div class="text-h5 text-weight-bolder text-grey-9 q-mt-xs">{{ adminStats.households }}</div>
+              <div class="text-caption text-grey-6 text-weight-medium" style="font-size: 11px;">Households</div>
+            </q-card>
+          </div>
+
+          <!-- Total Devices -->
+          <div class="col-6">
+            <q-card flat bordered class="power-monitor-card text-center q-pa-md">
+              <q-icon name="devices" size="32px" color="orange" />
+              <div class="text-h5 text-weight-bolder text-grey-9 q-mt-xs">{{ adminStats.devices }}</div>
+              <div class="text-caption text-grey-6 text-weight-medium" style="font-size: 11px;">Devices Monitored</div>
+            </q-card>
+          </div>
+
+          <!-- Total Tariff Classes -->
+          <div class="col-6">
+            <q-card flat bordered class="power-monitor-card text-center q-pa-md">
+              <q-icon name="bolt" size="32px" color="yellow-9" />
+              <div class="text-h5 text-weight-bolder text-grey-9 q-mt-xs">{{ adminStats.tariffs }}</div>
+              <div class="text-caption text-grey-6 text-weight-medium" style="font-size: 11px;">Tariff Classes</div>
+            </q-card>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== QUICK ACTIONS ===== -->
+      <div class="q-mt-lg q-mb-lg">
+        <div class="text-subtitle2 text-weight-bold q-mb-sm">Quick Management</div>
+        <q-card flat bordered class="top-devices-card q-pa-sm">
+          <q-list separator>
+            <q-item clickable v-ripple to="/management" class="q-py-md">
+              <q-item-section avatar>
+                <q-avatar color="green-1" text-color="green-8" icon="settings_suggest" />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label class="text-weight-bold text-body2">Manage Core Data</q-item-label>
+                <q-item-label caption>Edit device categories and active tariff classes</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <q-icon name="chevron_right" />
+              </q-item-section>
+            </q-item>
+
+            <q-item clickable v-ripple to="/profile" class="q-py-md">
+              <q-item-section avatar>
+                <q-avatar color="blue-1" text-color="blue-8" icon="person" />
+              </q-item-section>
+              <q-item-section>
+                <q-item-label class="text-weight-bold text-body2">Admin Profile</q-item-label>
+                <q-item-label caption>Change password and manage profile details</q-item-label>
+              </q-item-section>
+              <q-item-section side>
+                <q-icon name="chevron_right" />
+              </q-item-section>
+            </q-item>
+          </q-list>
+        </q-card>
+      </div>
+    </template>
+
     <template v-else>
       <!-- ===== HEADER ===== -->
       <div class="header-box q-px-md q-pt-md q-pb-lg">
@@ -386,9 +487,19 @@ import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { api } from 'src/boot/axios';
 import { useNotification } from 'src/composables/useNotification';
+import { useAuth } from 'src/composables/useAuth';
 
 const router = useRouter();
 const { unreadCount, fetchUnreadCount } = useNotification();
+const { isAdmin } = useAuth();
+const isUserAdmin = isAdmin();
+
+const adminStats = ref({
+  users: 0,
+  households: 0,
+  devices: 0,
+  tariffs: 0,
+});
 
 // Loading state
 const loading = ref(true);
@@ -837,38 +948,52 @@ function prevInsight() {
 // Fetch dashboard data
 async function fetchDashboardData() {
   try {
-    const [devRes, houseRes, tariffRes, catRes] = await Promise.all([
-      api.get('/devices'),
-      api.get('/households'),
-      api.get('/tariff-classes'),
-      api.get('/device-categories'),
-    ]);
+    if (isUserAdmin) {
+      const [userRes, houseRes, devRes, tariffRes] = await Promise.all([
+        api.get('/users').catch(() => ({ data: { data: { count: 0 } } })),
+        api.get('/households').catch(() => ({ data: { data: { count: 0 } } })),
+        api.get('/devices').catch(() => ({ data: { data: { count: 0 } } })),
+        api.get('/tariff-classes').catch(() => ({ data: { data: { count: 0 } } })),
+      ]);
 
-    devices.value = devRes.data?.data?.devices ?? [];
-    households.value = houseRes.data?.data?.households ?? [];
-    tariffClasses.value = tariffRes.data?.data?.tariff_classes ?? tariffRes.data?.data?.data ?? [];
-    categories.value = catRes.data?.data?.device_categories ?? catRes.data?.data?.data ?? [];
-
-    if (devices.value.length > 0) {
-      const usageResults = await Promise.all(
-        devices.value.map((device) =>
-          api
-            .get(`/devices/${device.id}/device-usages`)
-            .then((res) => {
-              const rows = (res.data?.data?.device_usages ?? []).map((u: Omit<DbDeviceUsage, 'deviceName'>) => ({
-                ...u,
-                deviceName: device.name,
-              }));
-              return rows;
-            })
-            .catch(() => [] as DbDeviceUsage[])
-        )
-      );
-      allUsages.value = usageResults
-        .flat()
-        .sort((a, b) => new Date(b.usage_date).getTime() - new Date(a.usage_date).getTime());
+      adminStats.value.users = userRes.data?.data?.count ?? userRes.data?.data?.users?.length ?? 0;
+      adminStats.value.households = houseRes.data?.data?.count ?? houseRes.data?.data?.households?.length ?? 0;
+      adminStats.value.devices = devRes.data?.data?.count ?? devRes.data?.data?.devices?.length ?? 0;
+      adminStats.value.tariffs = tariffRes.data?.data?.count ?? tariffRes.data?.data?.tariff_classes?.length ?? 0;
     } else {
-      allUsages.value = [];
+      const [devRes, houseRes, tariffRes, catRes] = await Promise.all([
+        api.get('/devices'),
+        api.get('/households'),
+        api.get('/tariff-classes'),
+        api.get('/device-categories'),
+      ]);
+
+      devices.value = devRes.data?.data?.devices ?? [];
+      households.value = houseRes.data?.data?.households ?? [];
+      tariffClasses.value = tariffRes.data?.data?.tariff_classes ?? tariffRes.data?.data?.data ?? [];
+      categories.value = catRes.data?.data?.device_categories ?? catRes.data?.data?.data ?? [];
+
+      if (devices.value.length > 0) {
+        const usageResults = await Promise.all(
+          devices.value.map((device) =>
+            api
+              .get(`/devices/${device.id}/device-usages`)
+              .then((res) => {
+                const rows = (res.data?.data?.device_usages ?? []).map((u: Omit<DbDeviceUsage, 'deviceName'>) => ({
+                  ...u,
+                  deviceName: device.name,
+                }));
+                return rows;
+              })
+              .catch(() => [] as DbDeviceUsage[])
+          )
+        );
+        allUsages.value = usageResults
+          .flat()
+          .sort((a, b) => new Date(b.usage_date).getTime() - new Date(a.usage_date).getTime());
+      } else {
+        allUsages.value = [];
+      }
     }
   } catch (error) {
     console.error('Failed to load dashboard:', error);
