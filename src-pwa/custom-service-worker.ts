@@ -54,16 +54,38 @@ interface CustomServiceWorkerGlobalScope {
 
 declare const self: CustomServiceWorkerGlobalScope;
 
-import { clientsClaim } from 'workbox-core';
+import { clientsClaim, type WorkboxPlugin } from 'workbox-core';
 import {
   precacheAndRoute,
   cleanupOutdatedCaches,
   createHandlerBoundToURL,
 } from 'workbox-precaching';
 import { registerRoute, NavigationRoute } from 'workbox-routing';
+import { NetworkFirst } from 'workbox-strategies';
+import { CacheableResponsePlugin } from 'workbox-cacheable-response';
+import { ExpirationPlugin } from 'workbox-expiration';
 
 void self.skipWaiting();
 clientsClaim();
+
+// Cache GET requests to backend API (api.calcwatt.com or any endpoint containing /api/)
+registerRoute(
+  ({ url, request }) =>
+    request.method === 'GET' &&
+    (url.host === 'api.calcwatt.com' || url.pathname.includes('/api/')),
+  new NetworkFirst({
+    cacheName: 'api-data-cache',
+    plugins: [
+      new CacheableResponsePlugin({
+        statuses: [0, 200],
+      }) as unknown as WorkboxPlugin,
+      new ExpirationPlugin({
+        maxEntries: 100, // limit to 100 entries
+        maxAgeSeconds: 60 * 60 * 24 * 7, // 7 days
+      }) as unknown as WorkboxPlugin,
+    ],
+  })
+);
 
 // Use with precache injection
 precacheAndRoute(self.__WB_MANIFEST);
