@@ -45,6 +45,16 @@ export function usePushNotification() {
       const registration = await navigator.serviceWorker.ready;
       const subscription = await registration.pushManager.getSubscription();
       isPushSubscribed.value = !!subscription;
+
+      // Auto-sync: Jika browser memiliki subscription, pastikan backend mengetahuinya
+      if (subscription) {
+        try {
+          await sendSubscriptionToServer(subscription);
+        } catch (serverError) {
+          console.warn('Auto-sync push subscription with server failed:', serverError);
+        }
+      }
+
       return !!subscription;
     } catch (error) {
       console.error('Failed to check push subscription:', error);
@@ -93,7 +103,7 @@ export function usePushNotification() {
 
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey) as any,
+        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey) as unknown as BufferSource,
       });
 
       // 5. Kirim subscription ke backend

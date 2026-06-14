@@ -211,7 +211,7 @@ onMounted(async () => {
 
 // Parsed Notifications based on selected tab
 const filteredNotifications = computed(() => {
-  let list = [...notifications.value];
+  const list = [...notifications.value];
   
   // Sort by created_at descending
   list.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -224,11 +224,17 @@ const filteredNotifications = computed(() => {
   return list;
 });
 
+interface NotificationData {
+  deviceId?: number;
+  period?: string;
+  action?: string;
+}
+
 // Parse custom JSON string in notification.data
-function getParsedData(dataStr: string): Record<string, any> {
+function getParsedData(dataStr: string): NotificationData {
   if (!dataStr) return {};
   try {
-    return JSON.parse(dataStr);
+    return JSON.parse(dataStr) as NotificationData;
   } catch {
     return {};
   }
