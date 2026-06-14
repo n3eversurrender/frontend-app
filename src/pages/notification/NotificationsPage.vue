@@ -335,7 +335,9 @@ async function handleDownloadReport(notification: NotificationItem) {
   downloadingId.value = notification.id;
   
   // Calculate first and last day of period
-  const [year, month] = period.split('-').map(Number);
+  const parts = period.split('-');
+  const year = Number(parts[0]) || new Date().getFullYear();
+  const month = Number(parts[1]) || (new Date().getMonth() + 1);
   const startDate = `${period}-01`;
   const lastDay = new Date(year, month, 0).getDate();
   const endDate = `${period}-${String(lastDay).padStart(2, '0')}`;
